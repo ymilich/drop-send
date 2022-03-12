@@ -2,13 +2,27 @@ const express = require('express')
 const fs = require('fs')
 const fileUpload = require('express-fileupload');
 const multer  = require('multer');
+const { join } = require('path');
 
 const app = express()
 const port = 8468
 const keyStorage = {}
 const uploadDirectory = __dirname + '/uploads';
-const upload = multer({ dest: uploadDirectory });
 
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDirectory)
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        splittedNameWExtention = file.originalname.split('.')
+        fileExtension = splittedNameWExtention[splittedNameWExtention.length - 1]
+        
+        splittedName = splittedNameWExtention.slice(0, -1);
+        cb(null, splittedName.join('') + '_' + uniqueSuffix + '.' + fileExtension)
+    }
+})
+const upload = multer({ storage: storage });
 
 function saveValidationFile() {
     const validationFileKey = 'sanityFile'
@@ -44,7 +58,7 @@ function initializeServer(){
 function generateKey() {
     const max = 999999;
     const min = 100000;
-    const key = str(Math.random() * (max - min) + min);
+    const key = Math.floor(Math.random() * (max - min) + min).toString();
 
     while (key in keyStorage) {
         key = Math.random() * (max - min) + min;
@@ -53,10 +67,10 @@ function generateKey() {
     return key
 }
 
-function saveFile(file){
+function saveFileInfo(file){
     // if we upload too many files then generating a non-existing key will be hard.
     // not handling this because we can always use a long hash as a key.
-    key = generateKey();
+    key = generateKey()
     keyStorage[key] = file
     return key
 }
@@ -66,13 +80,8 @@ app.use((req, res, next) => {
     next()
 })
 
-app.get('/', (req, res) => {
-    console.log("recieved request")
-    res.send("you're good amigo")
-})
-
 app.get('/getFile', (req, res) => {
-    console.log(req.query)
+    console.log("received a request" + req.query)
     const fileInfo = keyStorage[req.query.fileId]
     const options = {
         dotfiles: 'deny',
@@ -90,8 +99,9 @@ app.get('/getFile', (req, res) => {
 app.post('/upload', upload.single('File'), function(req, res) {
     // we have a coupling between the uploading and the routing. Thus the code remains together.
     // Ideally we seperate the two, either by making a tmp folder and extracting files later or by switching multer with another package
-    console.log(req.file); // the uploaded file object
-    key = saveFile(req.file) // future thought - save the sender info
+    console.log(req.file)
+    key = saveFileInfo(req.file)
+    console.log(`file ${req.file.originalname} saved successfully with key: ${key} and location: ${req.file.path}`)
     res.send(`file saved successfully with key: ${key}`)
 })
 
