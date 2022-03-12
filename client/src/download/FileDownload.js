@@ -4,7 +4,7 @@ import fileDownload from 'js-file-download'
 function FileDownloadPage(){
     const [fileId, setFileId] = useState("");
     const [isFilled, setIsFilled] = useState(false);
-    const [fileName, setFileName] = useState(false);
+    const [fileName, setFileName] = useState('');
 
 	const changeHandler = (e) => {
         setFileId(e.target.value)
