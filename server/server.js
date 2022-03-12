@@ -80,9 +80,22 @@ app.use((req, res, next) => {
     next()
 })
 
+app.use(function (req, res, next) {
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    next();
+});
+
 app.get('/getFile', (req, res) => {
-    console.log("received a request" + req.query)
+    console.log("received a request")
+    console.log(req.query)
     const fileInfo = keyStorage[req.query.fileId]
+    console.log(fileInfo)
     const options = {
         dotfiles: 'deny',
         headers: {
@@ -102,7 +115,10 @@ app.post('/upload', upload.single('File'), function(req, res) {
     console.log(req.file)
     key = saveFileInfo(req.file)
     console.log(`file ${req.file.originalname} saved successfully with key: ${key} and location: ${req.file.path}`)
-    res.send(`file saved successfully with key: ${key}`)
+    res.json([{
+        message: `file saved successfully with key: ${key}`,
+        key: key
+    }])
 })
 
 app.use((err, req, res, next) => {
