@@ -99,8 +99,10 @@ app.get('/getFile', (req, res) => {
     const options = {
         dotfiles: 'deny',
         headers: {
+            'Access-Control-Expose-Headers': ['filename'],
             'x-timestamp': Date.now(),
-            'x-sent': true
+            'x-sent': true,
+            'filename': fileInfo.filename
         }
     }
     res.sendFile(fileInfo.path, options, function(err){

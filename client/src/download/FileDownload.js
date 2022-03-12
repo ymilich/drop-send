@@ -1,8 +1,10 @@
 import React, {useState} from 'react';
+import fileDownload from 'js-file-download'
 
 function FileDownloadPage(){
     const [fileId, setFileId] = useState("");
-    const [isFilled, setIsFilled] = useState(false)
+    const [isFilled, setIsFilled] = useState(false);
+    const [fileName, setFileName] = useState(false);
 
 	const changeHandler = (e) => {
         setFileId(e.target.value)
@@ -16,21 +18,19 @@ function FileDownloadPage(){
                 {
                     method: "GET"
                 })
-            .then((response) => response.blob())
+            .then((response) => {
+                for (var pair of response.headers.entries()) {
+                    console.log(pair[0]+ ': '+ pair[1]);
+                    if (pair[0] == 'filename'){
+                        console.log(pair[1])
+                        setFileName(pair[1])
+                    }
+                 }
+                return response.blob()
+            })
             .then((blob) => {
                 console.log(blob)
-                const url = window.URL.createObjectURL(
-                    new Blob([blob]),
-                );
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute(
-                    'download',
-                    `filename`,
-                );
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode.removeChild(link);
+                fileDownload(blob, fileName)
             })
             .catch((error) => {
                 console.error('Error:', error);
