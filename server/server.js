@@ -7,55 +7,38 @@ const app = express()
 const port = 8468
 const keyStorage = {}
 const uploadDirectory = __dirname + '/uploads';
-const upload = multer({ dest: __dirname + '/uploads' });
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDirectory)
-    },
-    filename: function (req, file, cb) {
-        key = generateKey()
-        filePath = uploadDirectory + '/' + file.originalname
-        keyStorage[key] = filePath
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, file.fieldname + '-' + uniqueSuffix)
-    }
-})
-  
-  const upload = multer({ storage: storage })
+const upload = multer({ dest: uploadDirectory });
 
 
-// great walkthrough here -https://blog.risingstack.com/your-first-node-js-http-server/
-// for now storage is 6-dig key to filepath. filename will be for now the 6-dig code but as we go we 
-// can make it safer by setting filename to some name and save the code dictionary in a safer place
-
-
-function initializeServer(){
-    saveDefaultFile();
-    app.emit('ready')
-}
-
-function saveDefaultFile() {
-    const defaultKey = '000000'
-    const defaultFilePath = __dirname + '/' + defaultKey + '.txt'
-    keyStorage[defaultKey] = defaultFilePath
-    const defaultFileInfo = `{
+function saveValidationFile() {
+    const validationFileKey = 'sanityFile'
+    const validationFileName = 'randomname'
+    const validationFilePath = uploadDirectory + '/' + validationFileName + '.txt'
+    const validationFileInfo = `{
         fieldname: 'File',
-        originalname: '20180918_204658.jpg',
-        encoding: '7bit',
-        mimetype: 'image/jpeg',
-        destination: 'C:\\code\\git\\drop-send\\uploads\\server',
-        filename: '8c4611102394020fd927891544572d4b',
-        path: 'C:\\code\\git\\drop-send\\server\\uploads\\8c4611102394020fd927891544572d4b',
+        originalname: 'aaa.txt',
+        encoding: '',
+        mimetype: 'txt',
+        destination: '${uploadDirectory}',
+        filename: '${validationFileName}',
+        path: '${validationFilePath}',
         size: 3767679
       }`;
-    fs.writeFile(defaultFilePath, defaultFileInfo, function (err) {
+    const validationFileContent = "We are sane."
+    
+    keyStorage[validationFileKey] = validationFileInfo
+    fs.writeFile(validationFilePath, validationFileContent, function (err) {
         if (err) {
             keyStorage.delete(key);
             return console.log(err);
         }
         console.log("The file was saved!");
     });
+}
+
+function initializeServer(){
+    saveValidationFile()
+    app.emit('ready')
 }
 
 function generateKey() {
@@ -90,7 +73,7 @@ app.get('/', (req, res) => {
 
 app.get('/getFile', (req, res) => {
     console.log(req.query)
-    const filePath = keyStorage[req.query.fileId]
+    const fileInfo = keyStorage[req.query.fileId]
     const options = {
         dotfiles: 'deny',
         headers: {
@@ -98,15 +81,16 @@ app.get('/getFile', (req, res) => {
             'x-sent': true
         }
     }
-    res.sendFile(filePath, options, function(err){
+    res.sendFile(fileInfo.path, options, function(err){
         console.error(err)
         res.status(500).send(err)
     })
 })
   
 app.post('/upload', upload.single('File'), function(req, res) {
+    // we have a coupling between the uploading and the routing. Thus the code remains together.
+    // Ideally we seperate the two, either by making a tmp folder and extracting files later or by switching multer with another package
     console.log(req.file); // the uploaded file object
-    
     key = saveFile(req.file) // future thought - save the sender info
     res.send(`file saved successfully with key: ${key}`)
 })
@@ -127,8 +111,3 @@ app.on('ready', function() {
 
 initializeServer()
 
-// mongoose.connect( "mongodb://localhost/mydb" );
-// mongoose.connection.once('open', function() { 
-//     // All OK - fire (emit) a ready event. 
-//     app.emit('ready'); 
-// });
