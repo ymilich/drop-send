@@ -22,36 +22,10 @@ const storage = multer.diskStorage({
         cb(null, splittedName.join('') + '_' + uniqueSuffix + '.' + fileExtension)
     }
 })
+
 const upload = multer({ storage: storage });
 
-function saveValidationFile() {
-    const validationFileKey = 'sanityFile'
-    const validationFileName = 'randomname'
-    const validationFilePath = uploadDirectory + '/' + validationFileName + '.txt'
-    const validationFileInfo = `{
-        fieldname: 'File',
-        originalname: 'aaa.txt',
-        encoding: '',
-        mimetype: 'txt',
-        destination: '${uploadDirectory}',
-        filename: '${validationFileName}',
-        path: '${validationFilePath}',
-        size: 3767679
-      }`;
-    const validationFileContent = "We are sane."
-    
-    keyStorage[validationFileKey] = validationFileInfo
-    fs.writeFile(validationFilePath, validationFileContent, function (err) {
-        if (err) {
-            keyStorage.delete(key);
-            return console.log(err);
-        }
-        console.log("The file was saved!");
-    });
-}
-
 function initializeServer(){
-    saveValidationFile()
     app.emit('ready')
 }
 
