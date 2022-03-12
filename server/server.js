@@ -1,14 +1,34 @@
 const express = require('express')
 const fs = require('fs')
 const fileUpload = require('express-fileupload');
+const multer  = require('multer');
+
 const app = express()
 const port = 8468
+const keyStorage = {}
+const uploadDirectory = __dirname + '/uploads';
+const upload = multer({ dest: __dirname + '/uploads' });
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDirectory)
+    },
+    filename: function (req, file, cb) {
+        key = generateKey()
+        filePath = uploadDirectory + '/' + file.originalname
+        keyStorage[key] = filePath
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        cb(null, file.fieldname + '-' + uniqueSuffix)
+    }
+})
+  
+  const upload = multer({ storage: storage })
+
 
 // great walkthrough here -https://blog.risingstack.com/your-first-node-js-http-server/
 // for now storage is 6-dig key to filepath. filename will be for now the 6-dig code but as we go we 
 // can make it safer by setting filename to some name and save the code dictionary in a safer place
 
-const keyStorage = {}
 
 function initializeServer(){
     saveDefaultFile();
@@ -19,7 +39,17 @@ function saveDefaultFile() {
     const defaultKey = '000000'
     const defaultFilePath = __dirname + '/' + defaultKey + '.txt'
     keyStorage[defaultKey] = defaultFilePath
-    fs.writeFile(defaultFilePath, "this is a default file to be sent to client", function (err) {
+    const defaultFileInfo = `{
+        fieldname: 'File',
+        originalname: '20180918_204658.jpg',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: 'C:\\code\\git\\drop-send\\uploads\\server',
+        filename: '8c4611102394020fd927891544572d4b',
+        path: 'C:\\code\\git\\drop-send\\server\\uploads\\8c4611102394020fd927891544572d4b',
+        size: 3767679
+      }`;
+    fs.writeFile(defaultFilePath, defaultFileInfo, function (err) {
         if (err) {
             keyStorage.delete(key);
             return console.log(err);
@@ -44,17 +74,7 @@ function saveFile(file){
     // if we upload too many files then generating a non-existing key will be hard.
     // not handling this because we can always use a long hash as a key.
     key = generateKey();
-    const filePath = __dirname + key;
-    keyStorage[key] = filePath
-    
-    fs.writeFile(filePath, file, function(err) {
-        if (err) {
-            keyStorage.delete(key)
-            return console.log(err);
-        }
-        console.log("The file was saved!");
-    });
-
+    keyStorage[key] = file
     return key
 }
 
@@ -84,9 +104,10 @@ app.get('/getFile', (req, res) => {
     })
 })
   
-app.post('/upload', function(req, res) {
-    console.log(req.files.uploadFile); // the uploaded file object
-    key = saveFile(req.files.uploadFile) // future thought - save the sender info: req.headers.from for example
+app.post('/upload', upload.single('File'), function(req, res) {
+    console.log(req.file); // the uploaded file object
+    
+    key = saveFile(req.file) // future thought - save the sender info
     res.send(`file saved successfully with key: ${key}`)
 })
 
