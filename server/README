@@ -1,0 +1,9 @@
+to run the code download node and npm install all packages in package.json
+    npm install
+then install react and build the client
+    npm run build (from drop-send/client directory)
+
+and finally run the server
+    node ./server.js (from drop-send/server directory)
+
+the server will listen on port 8468 and will serve the client from the base route

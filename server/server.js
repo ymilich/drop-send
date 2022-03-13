@@ -3,6 +3,7 @@ const fs = require('fs')
 const fileUpload = require('express-fileupload');
 const multer  = require('multer');
 const { join } = require('path');
+const path = require('path');
 
 const app = express()
 const port = 8468
@@ -58,11 +59,19 @@ app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-    // Set to true if you need the website to include cookies in the requests sent
-    // to the API (e.g. in case you use sessions)
     res.setHeader('Access-Control-Allow-Credentials', true);
     next();
+});
+
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+app.use((err, req, res, next) => {
+    console.error(err)
+    res.status(500).send('Something broke!')
+})
+
+app.get('/', function (req, res) {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
 });
 
 app.get('/getFile', (req, res) => {
@@ -95,11 +104,6 @@ app.post('/upload', upload.single('File'), function(req, res) {
         message: `file saved successfully with key: ${key}`,
         key: key
     }])
-})
-
-app.use((err, req, res, next) => {
-    console.error(err)
-    res.status(500).send('Something broke!')
 })
 
 app.on('ready', function() { 
